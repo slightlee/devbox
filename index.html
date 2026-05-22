@@ -14,15 +14,11 @@
 <body>
   <a href="#main-content" class="skip-link">跳转到主要内容</a>
 
-  <section class="hero" id="main-content" role="banner">
-    <div class="container">
-      <div class="hero-badge"><span class="svg-icon" id="heroBadgeIcon" style="display:inline-flex;"></span> 开发者必备工具箱</div>
-      <h1>DevBox</h1>
-      <p>开发者日常高频工具集合，即开即用，无需安装。快速完成编码转换、数据处理、安全校验等操作。</p>
+  <div class="container" id="main-content">
+    <div class="search-bar">
+      <span class="search-bar-icon svg-icon" id="searchIcon"></span>
+      <input type="text" class="search-bar-input" id="searchInput" placeholder="搜索工具…" autocomplete="off" aria-label="搜索工具">
     </div>
-  </section>
-
-  <div class="container">
     <div class="categories" id="categories" role="tablist" aria-label="工具分类"></div>
   </div>
 
@@ -38,7 +34,7 @@
   <script src="js/common.js"></script>
   <script>
     // Inject icons
-    document.getElementById('heroBadgeIcon').innerHTML = getIcon('sparkles');
+    document.getElementById('searchIcon').innerHTML = getIcon('search');
     document.getElementById('noResultsIcon').innerHTML = getIcon('search');
 
     // Render navbar and footer
@@ -46,6 +42,13 @@
     renderFooter();
 
     let activeCategory = '全部';
+    let searchQuery = '';
+
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', () => {
+      searchQuery = searchInput.value.trim().toLowerCase();
+      renderTools();
+    });
 
     function renderCategories() {
       const el = document.getElementById('categories');
@@ -64,7 +67,10 @@
     function renderTools() {
       const grid = document.getElementById('toolsGrid');
       const noResults = document.getElementById('noResults');
-      const filtered = TOOLS.filter(t => activeCategory === '全部' || t.category === activeCategory);
+      const filtered = TOOLS.filter(t =>
+        (activeCategory === '全部' || t.category === activeCategory) &&
+        (!searchQuery || t.name.toLowerCase().includes(searchQuery) || t.desc.toLowerCase().includes(searchQuery))
+      );
       if (filtered.length === 0) {
         grid.style.display = 'none';
         noResults.classList.add('visible');

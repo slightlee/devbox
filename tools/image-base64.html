@@ -32,13 +32,15 @@
           <span class="panel-title">上传图片</span>
         </div>
         <div class="panel-body">
-          <div class="upload-zone" id="uploadZone" role="button" tabindex="0" aria-label="点击或拖拽图片上传">
-            <div class="upload-zone-icon svg-icon" data-icon="upload" style="justify-content:center;"></div>
-            <div class="upload-zone-text">点击或拖拽图片到此处</div>
-            <div class="upload-zone-hint">支持 PNG、JPG、GIF、SVG、WebP</div>
+          <div class="image-droparea" id="uploadZone" role="button" tabindex="0" aria-label="点击或拖拽图片上传">
+            <div class="image-droparea-empty" id="dropEmpty">
+              <div class="image-droparea-icon svg-icon" data-icon="upload" style="justify-content:center;"></div>
+              <div class="image-droparea-text">点击或拖拽图片到此处</div>
+              <div class="image-droparea-hint">支持 PNG、JPG、GIF、SVG、WebP</div>
+            </div>
+            <img id="previewImg" class="image-droparea-preview" hidden alt="上传的图片预览">
           </div>
           <input type="file" id="fileInput" accept="image/*" hidden aria-hidden="true">
-          <img id="previewImg" class="image-preview" hidden alt="上传的图片预览">
           <div class="mt-md">
             <label class="io-label" for="b64Output">Base64 输出</label>
             <textarea class="textarea-field min-h-sm" id="b64Output" placeholder="图片的 Base64 编码将显示在这里..." readonly></textarea>
@@ -63,7 +65,6 @@
             <button class="btn btn-primary" onclick="decodeToImage()">生成图片</button>
           </div>
           <div id="decodedImgWrap" class="mt-md" hidden>
-            <div class="io-label">图片预览</div>
             <img id="decodedImg" class="image-preview" alt="Base64 解码的图片">
           </div>
         </div>
@@ -107,6 +108,7 @@
         const img = document.getElementById('previewImg');
         img.src = result;
         img.hidden = false;
+        document.getElementById('dropEmpty').hidden = true;
         document.getElementById('imgInfo').textContent = `${file.name} | ${file.type} | ${(file.size / 1024).toFixed(1)} KB`;
       };
       reader.readAsDataURL(file);
