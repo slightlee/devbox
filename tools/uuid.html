@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">跳转到主要内容</a>
+  <div class="tool-page">
+    <main class="tool-content animate-in" id="main-content" role="main">
+      <div class="tool-header">
+        <h1><span class="tool-icon icon-dev svg-icon" aria-hidden="true" data-icon="fingerprint"></span> UUID 生成</h1>
+        <p>一键生成 UUID v4，支持批量生成、自定义格式和数量。</p>
+      </div>
+
+      <div class="tool-panel mb-lg">
+        <div class="panel-header">
+          <span class="panel-title">生成设置</span>
+        </div>
+        <div class="panel-body">
+          <div class="flex-row-end">
+            <div>
+              <label class="io-label" for="uuidCount">生成数量</label>
+              <input type="number" class="input-field mono" id="uuidCount" value="5" min="1" max="100" style="width:100px;">
+            </div>
+            <div>
+              <label class="io-label" for="uuidFormat">格式</label>
+              <select class="select-field" id="uuidFormat">
+                <option value="default">标准 (带连字符)</option>
+                <option value="nohyphen">无连字符</option>
+                <option value="upper">大写</option>
+                <option value="braces">花括号包裹</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="generate()">生成</button>
+            <button class="btn btn-secondary" onclick="copyAll()">
+              <span class="svg-icon" data-icon="copy"></span> 复制全部
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tool-panel">
+        <div class="panel-header">
+          <span class="panel-title">生成结果</span>
+          <span id="uuidInfo" class="text-muted">-</span>
+        </div>
+        <div class="panel-body">
+          <div id="uuidResults"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/icons.js"></script>
+  <script src="../js/common.js"></script>
+  <script>
+    initToolPage('uuid');
+
+    let lastUUIDs = [];
+
+    function generateUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      });
+    }
+
+    function formatUUID(uuid, format) {
+      switch (format) {
+        case 'nohyphen': return uuid.replace(/-/g, '');
+        case 'upper': return uuid.toUpperCase();
+        case 'braces': return '{' + uuid + '}';
+        default: return uuid;
+      }
+    }
+
+    function generate() {
+      const count = Math.min(100, Math.max(1, +document.getElementById('uuidCount').value || 5));
+      const format = document.getElementById('uuidFormat').value;
+      const results = [];
+      for (let i = 0; i < count; i++) results.push(formatUUID(generateUUID(), format));
+      lastUUIDs = results;
+
+      const container = document.getElementById('uuidResults');
+      container.innerHTML = results.map((uuid, i) => `
+        <div style="display:flex;align-items:center;gap:var(--space-md);padding:8px var(--space-md);border-bottom:1px solid var(--color-border-light);${i === results.length - 1 ? 'border-bottom:none;' : ''}">
+          <span class="text-muted" style="width:24px;text-align:right;">${i + 1}</span>
+          <code style="flex:1;font-family:var(--font-mono);font-size:0.875rem;color:var(--color-text);">${escapeHtml(uuid)}</code>
+          <button class="btn btn-ghost btn-sm" data-copy-uuid="${i}">
+            <span class="svg-icon">${getIcon('copy')}</span>
+          </button>
+        </div>
+      `).join('');
+
+      document.getElementById('uuidInfo').textContent = `已生成 ${count} 个 UUID`;
+    }
+
+    // Event delegation for copy buttons
+    document.getElementById('uuidResults').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-copy-uuid]');
+      if (btn && lastUUIDs[+btn.dataset.copyUuid]) {
+        copyText(lastUUIDs[+btn.dataset.copyUuid]);
+      }
+    });
+
+    function copyAll() {
+      if (!lastUUIDs.length) { showToast('请先生成 UUID', 'info'); return; }
+      copyText(lastUUIDs.join('\n'));
+    }
+
+    generate();
+  </script>
+</body>
+</html>

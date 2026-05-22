@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">跳转到主要内容</a>
+  <div class="tool-page">
+    <main class="tool-content animate-in" id="main-content" role="main">
+      <div class="tool-header">
+        <h1><span class="tool-icon icon-data svg-icon" aria-hidden="true" data-icon="brackets"></span> JSON 工具</h1>
+        <p>JSON 格式化、压缩、语法校验，快速处理 JSON 数据。</p>
+      </div>
+
+      <div class="tool-panel mb-lg">
+        <div class="panel-body flex-wrap" style="align-items:center;">
+          <button class="btn btn-primary" onclick="formatJSON()">格式化</button>
+          <button class="btn btn-secondary" onclick="compressJSON()">压缩</button>
+          <button class="btn btn-secondary" onclick="validateJSON()">校验</button>
+          <div class="ml-auto gap-sm">
+            <button class="btn btn-ghost btn-sm" onclick="copyOutputText('outputJson')">
+              <span class="svg-icon" data-icon="copy"></span> 复制结果
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="clearAll()">清空</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tool-panel">
+        <div class="tool-io" style="padding: var(--space-lg);">
+          <div class="io-box">
+            <label class="io-label" for="inputJson">输入 JSON</label>
+            <textarea class="textarea-field" id="inputJson" placeholder='粘贴 JSON 数据，例如：
+{
+  "name": "DevTools",
+  "version": "1.0",
+  "features": ["format", "compress", "validate"]
+}'></textarea>
+          </div>
+          <div class="io-box">
+            <label class="io-label" for="outputJson" id="outputLabel">格式化结果</label>
+            <textarea class="textarea-field" id="outputJson" placeholder="结果将显示在这里..." readonly></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-card">
+          <div class="info-card-label">状态</div>
+          <div class="info-card-value" id="jsonStatus">-</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">输入大小</div>
+          <div class="info-card-value" id="inputSize">0 B</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">输出大小</div>
+          <div class="info-card-value" id="outputSize">0 B</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/icons.js"></script>
+  <script src="../js/common.js"></script>
+  <script>
+    initToolPage('json');
+
+    function formatJSON() {
+      const input = document.getElementById('inputJson').value.trim();
+      if (!input) return;
+      try {
+        const obj = JSON.parse(input);
+        document.getElementById('outputJson').value = JSON.stringify(obj, null, 2);
+        document.getElementById('outputLabel').textContent = '格式化结果';
+        setStatus('有效', true);
+      } catch (e) {
+        setStatus('无效: ' + e.message, false);
+      }
+      updateSizes();
+    }
+
+    function compressJSON() {
+      const input = document.getElementById('inputJson').value.trim();
+      if (!input) return;
+      try {
+        const obj = JSON.parse(input);
+        document.getElementById('outputJson').value = JSON.stringify(obj);
+        document.getElementById('outputLabel').textContent = '压缩结果';
+        setStatus('有效', true);
+      } catch (e) {
+        setStatus('无效: ' + e.message, false);
+      }
+      updateSizes();
+    }
+
+    function validateJSON() {
+      const input = document.getElementById('inputJson').value.trim();
+      if (!input) return;
+      try {
+        JSON.parse(input);
+        setStatus('JSON 语法正确', true);
+        document.getElementById('outputJson').value = '';
+        document.getElementById('outputLabel').textContent = '校验结果';
+        showToast('JSON 语法正确', 'success');
+      } catch (e) {
+        setStatus('无效: ' + e.message, false);
+        showToast('JSON 语法错误', 'error');
+      }
+      updateSizes();
+    }
+
+    function setStatus(text, valid) {
+      const el = document.getElementById('jsonStatus');
+      el.textContent = text;
+      el.style.color = valid ? 'var(--color-success)' : 'var(--color-error)';
+    }
+
+    function updateSizes() {
+      const fmt = (n) => n < 1024 ? n + ' B' : (n / 1024).toFixed(1) + ' KB';
+      document.getElementById('inputSize').textContent = fmt(document.getElementById('inputJson').value.length);
+      document.getElementById('outputSize').textContent = fmt(document.getElementById('outputJson').value.length);
+    }
+
+    function clearAll() {
+      document.getElementById('inputJson').value = '';
+      document.getElementById('outputJson').value = '';
+      document.getElementById('jsonStatus').textContent = '-';
+      document.getElementById('jsonStatus').style.color = '';
+      updateSizes();
+    }
+  </script>
+</body>
+</html>

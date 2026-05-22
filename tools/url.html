@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">跳转到主要内容</a>
+  <div class="tool-page">
+    <main class="tool-content animate-in" id="main-content" role="main">
+      <div class="tool-header">
+        <h1><span class="tool-icon icon-encode svg-icon" aria-hidden="true" data-icon="link"></span> URL 编解码</h1>
+        <p>URL 编码与解码转换，正确处理特殊字符和中文参数。</p>
+      </div>
+
+      <div class="tool-panel mb-lg">
+        <div class="panel-body flex-row">
+          <div class="btn-group" role="group" aria-label="编码模式">
+            <button class="btn btn-secondary active" id="modeEnc" aria-pressed="true">编码</button>
+            <button class="btn btn-secondary" id="modeDec" aria-pressed="false">解码</button>
+          </div>
+          <select class="select-field" id="encodeType" style="min-width:180px;" aria-label="编码类型">
+            <option value="component">encodeURIComponent</option>
+            <option value="uri">encodeURI</option>
+          </select>
+          <button class="swap-btn" id="swapBtn" title="交换" aria-label="交换输入输出">
+            <span class="svg-icon" data-icon="swap"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="tool-panel">
+        <div class="tool-io" style="padding: var(--space-lg);">
+          <div class="io-box">
+            <label class="io-label" for="inputText" id="inputLabel">输入文本</label>
+            <textarea class="textarea-field" id="inputText" placeholder="请输入要编码的 URL 或文本..."></textarea>
+          </div>
+          <div class="io-box">
+            <label class="io-label" for="outputText" id="outputLabel">编码结果</label>
+            <textarea class="textarea-field" id="outputText" placeholder="结果将显示在这里..." readonly></textarea>
+          </div>
+        </div>
+        <div class="panel-actions-row" style="padding:0 var(--space-lg) var(--space-lg);">
+          <button class="btn btn-primary" onclick="convert()">转换</button>
+          <button class="btn btn-secondary" onclick="copyOutputText('outputText')">
+            <span class="svg-icon" data-icon="copy"></span> 复制结果
+          </button>
+          <button class="btn btn-ghost" onclick="clearTextareas('inputText', 'outputText')">清空</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/icons.js"></script>
+  <script src="../js/common.js"></script>
+  <script>
+    initToolPage('url');
+
+    let mode = 'encode';
+
+    const setMode = setupModeToggle('modeEnc', 'modeDec', ['encode', 'decode'], (m) => {
+      mode = m;
+      document.getElementById('inputLabel').textContent = m === 'encode' ? '输入文本' : '输入编码';
+      document.getElementById('outputLabel').textContent = m === 'encode' ? '编码结果' : '解码结果';
+      document.getElementById('encodeType').style.display = m === 'encode' ? '' : 'none';
+      convert();
+    });
+
+    document.getElementById('swapBtn').addEventListener('click', () => {
+      swapTextareas('inputText', 'outputText', () => setMode(mode === 'encode' ? 'decode' : 'encode'));
+    });
+
+    function convert() {
+      const input = document.getElementById('inputText').value;
+      const output = document.getElementById('outputText');
+      if (!input) { output.value = ''; return; }
+      try {
+        if (mode === 'encode') {
+          const type = document.getElementById('encodeType').value;
+          output.value = type === 'component' ? encodeURIComponent(input) : encodeURI(input);
+        } else {
+          output.value = decodeURIComponent(input);
+        }
+      } catch (e) {
+        output.value = '';
+        showToast('转换失败', 'error');
+      }
+    }
+
+    document.getElementById('inputText').addEventListener('input', debounce(convert, 200));
+  </script>
+</body>
+</html>

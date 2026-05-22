@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <style>
+    .match-highlight { background: #fef08a; border-radius: 2px; padding: 0 1px; }
+    .match-highlight:nth-child(even) { background: #bbf7d0; }
+    .regex-input-row {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: var(--color-bg);
+    }
+    .regex-input-row:focus-within {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px var(--color-primary-bg);
+    }
+    .regex-slash {
+      padding: 10px 0 10px 12px;
+      color: var(--color-text-muted);
+      font-family: var(--font-mono);
+      font-size: 0.875rem;
+      user-select: none;
+    }
+    .regex-input-row input {
+      border: none !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      padding: 10px 4px !important;
+    }
+    .regex-flags {
+      padding: 10px 12px 10px 0;
+      font-family: var(--font-mono);
+      font-size: 0.875rem;
+      color: var(--color-primary);
+      cursor: pointer;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">跳转到主要内容</a>
+  <div class="tool-page">
+    <main class="tool-content animate-in" id="main-content" role="main">
+      <div class="tool-header">
+        <h1><span class="tool-icon icon-dev svg-icon" aria-hidden="true" data-icon="scan"></span> 正则表达式测试</h1>
+        <p>输入正则表达式和测试文本，实时高亮显示匹配结果。</p>
+      </div>
+
+      <div class="tool-panel mb-lg">
+        <div class="panel-header">
+          <span class="panel-title">正则表达式</span>
+        </div>
+        <div class="panel-body">
+          <label class="io-label" for="regexPattern">表达式</label>
+          <div class="regex-input-row">
+            <span class="regex-slash" aria-hidden="true">/</span>
+            <input type="text" class="input-field mono" id="regexPattern" placeholder="输入正则表达式..." aria-label="正则表达式">
+            <span class="regex-slash" aria-hidden="true">/</span>
+            <span class="regex-flags" id="flagsDisplay" onclick="toggleFlagsMenu()" title="点击修改标志位" role="button" tabindex="0" aria-label="正则标志位">g</span>
+          </div>
+          <div id="flagsMenu" class="mt-sm" hidden style="padding:var(--space-md);background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-md);">
+            <div class="flex-row" style="gap:var(--space-lg);">
+              <label style="display:flex;align-items:center;gap:6px;font-size:0.875rem;cursor:pointer;"><input type="checkbox" id="flagG" checked onchange="updateFlags()"> g (全局)</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:0.875rem;cursor:pointer;"><input type="checkbox" id="flagI" onchange="updateFlags()"> i (忽略大小写)</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:0.875rem;cursor:pointer;"><input type="checkbox" id="flagM" onchange="updateFlags()"> m (多行)</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:0.875rem;cursor:pointer;"><input type="checkbox" id="flagS" onchange="updateFlags()"> s (点号匹配换行)</label>
+            </div>
+          </div>
+          <div id="regexError" class="mt-sm text-muted" hidden style="color:var(--color-error);" role="alert"></div>
+        </div>
+      </div>
+
+      <div class="tool-panel mb-lg">
+        <div class="panel-header">
+          <span class="panel-title">测试文本</span>
+        </div>
+        <div class="panel-body">
+          <label class="io-label" for="testText">测试内容</label>
+          <textarea class="textarea-field min-h-md" id="testText" placeholder="输入要测试的文本..."></textarea>
+        </div>
+      </div>
+
+      <div class="tool-panel mb-lg">
+        <div class="panel-header">
+          <span class="panel-title">匹配结果</span>
+          <span id="matchCount" class="text-muted">0 个匹配</span>
+        </div>
+        <div class="panel-body">
+          <div id="highlightedText" style="font-family:var(--font-mono);font-size:0.875rem;line-height:1.8;white-space:pre-wrap;word-break:break-all;min-height:60px;color:var(--color-text);"></div>
+        </div>
+      </div>
+
+      <div class="tool-panel">
+        <div class="panel-header">
+          <span class="panel-title">匹配详情</span>
+        </div>
+        <div class="panel-body">
+          <div id="matchDetails">
+            <div class="empty-state">
+              <div class="empty-state-icon svg-icon" data-icon="scan" style="justify-content:center;"></div>
+              <div class="empty-state-text">输入正则和文本后查看匹配详情</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/icons.js"></script>
+  <script src="../js/common.js"></script>
+  <script>
+    initToolPage('regex');
+
+    function getFlags() {
+      let f = '';
+      if (document.getElementById('flagG').checked) f += 'g';
+      if (document.getElementById('flagI').checked) f += 'i';
+      if (document.getElementById('flagM').checked) f += 'm';
+      if (document.getElementById('flagS').checked) f += 's';
+      return f;
+    }
+
+    function updateFlags() {
+      document.getElementById('flagsDisplay').textContent = getFlags() || '-';
+      testRegex();
+    }
+
+    function toggleFlagsMenu() {
+      const menu = document.getElementById('flagsMenu');
+      menu.hidden = !menu.hidden;
+    }
+
+    function testRegex() {
+      const pattern = document.getElementById('regexPattern').value;
+      const text = document.getElementById('testText').value;
+      const errorEl = document.getElementById('regexError');
+      const highlightEl = document.getElementById('highlightedText');
+      const detailsEl = document.getElementById('matchDetails');
+      const countEl = document.getElementById('matchCount');
+
+      errorEl.hidden = true;
+
+      if (!pattern || !text) {
+        highlightEl.textContent = text || '';
+        countEl.textContent = '0 个匹配';
+        detailsEl.innerHTML = `<div class="empty-state"><div class="empty-state-icon svg-icon" style="justify-content:center;" data-icon="scan"></div><div class="empty-state-text">输入正则和文本后查看匹配详情</div></div>`;
+        detailsEl.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML = getIcon(el.dataset.icon); });
+        return;
+      }
+
+      let regex;
+      try {
+        regex = new RegExp(pattern, getFlags());
+      } catch (e) {
+        errorEl.textContent = '正则表达式语法错误: ' + e.message;
+        errorEl.hidden = false;
+        highlightEl.textContent = text;
+        return;
+      }
+
+      const matches = [];
+      let m;
+      const globalRegex = new RegExp(pattern, getFlags().includes('g') ? getFlags() : getFlags() + 'g');
+      while ((m = globalRegex.exec(text)) !== null) {
+        matches.push({ index: m.index, length: m[0].length, value: m[0], groups: m.slice(1) });
+        if (m[0].length === 0) globalRegex.lastIndex++;
+      }
+
+      countEl.textContent = `${matches.length} 个匹配`;
+
+      if (matches.length === 0) {
+        highlightEl.textContent = text;
+        detailsEl.innerHTML = `<div class="empty-state"><div class="empty-state-icon svg-icon" style="justify-content:center;">${getIcon('x')}</div><div class="empty-state-text">没有匹配结果</div></div>`;
+        return;
+      }
+
+      let html = '';
+      let lastIdx = 0;
+      matches.forEach(m => {
+        html += escapeHtml(text.slice(lastIdx, m.index));
+        html += `<span class="match-highlight">${escapeHtml(m.value)}</span>`;
+        lastIdx = m.index + m.length;
+      });
+      html += escapeHtml(text.slice(lastIdx));
+      highlightEl.innerHTML = html;
+
+      let tableHtml = '<table class="data-table"><thead><tr><th>#</th><th>匹配</th><th>位置</th>';
+      if (matches[0].groups.length) {
+        for (let i = 1; i <= matches[0].groups.length; i++) tableHtml += `<th>组${i}</th>`;
+      }
+      tableHtml += '</tr></thead><tbody>';
+      matches.forEach((m, i) => {
+        tableHtml += `<tr><td>${i + 1}</td><td style="color:var(--color-primary);">${escapeHtml(m.value)}</td><td>${m.index}-${m.index + m.length}</td>`;
+        m.groups.forEach(g => tableHtml += `<td>${g !== undefined ? escapeHtml(g) : '<span style="color:var(--color-text-muted);">-</span>'}</td>`);
+        tableHtml += '</tr>';
+      });
+      tableHtml += '</tbody></table>';
+      detailsEl.innerHTML = tableHtml;
+    }
+
+    document.getElementById('regexPattern').addEventListener('input', debounce(testRegex, 200));
+    document.getElementById('testText').addEventListener('input', debounce(testRegex, 200));
+  </script>
+</body>
+</html>

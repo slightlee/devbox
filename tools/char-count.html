@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">跳转到主要内容</a>
+  <div class="tool-page">
+    <main class="tool-content animate-in" id="main-content" role="main">
+      <div class="tool-header">
+        <h1><span class="tool-icon icon-text svg-icon" aria-hidden="true" data-icon="text"></span> 字符统计</h1>
+        <p>实时统计文本的字符数、词数、行数、字节数等信息。</p>
+      </div>
+
+      <div class="info-grid grid-compact mb-lg">
+        <div class="info-card">
+          <div class="info-card-label">字符数</div>
+          <div class="info-card-value" id="statChars">0</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">不含空格</div>
+          <div class="info-card-value" id="statNoSpace">0</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">词数</div>
+          <div class="info-card-value" id="statWords">0</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">行数</div>
+          <div class="info-card-value" id="statLines">0</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">字节数 (UTF-8)</div>
+          <div class="info-card-value" id="statBytes">0</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">中文字符</div>
+          <div class="info-card-value" id="statChinese">0</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">英文字母</div>
+          <div class="info-card-value" id="statLetters">0</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">数字</div>
+          <div class="info-card-value" id="statDigits">0</div>
+        </div>
+      </div>
+
+      <div class="tool-panel">
+        <div class="panel-header">
+          <span class="panel-title">输入文本</span>
+          <button class="btn btn-ghost btn-sm" onclick="clearTextareas('textInput'); countStats();">清空</button>
+        </div>
+        <div class="panel-body">
+          <label class="io-label" for="textInput">待统计文本</label>
+          <textarea class="textarea-field min-h-lg" id="textInput" placeholder="在此输入或粘贴文本，统计数据将实时更新..."></textarea>
+        </div>
+      </div>
+
+      <div class="info-grid mt-lg">
+        <div class="info-card">
+          <div class="info-card-label">段落数</div>
+          <div class="info-card-value" id="statParagraphs">0</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">句子数</div>
+          <div class="info-card-value" id="statSentences">0</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">阅读时间</div>
+          <div class="info-card-value text-sm" id="statReadTime">0 分钟</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">打字时间</div>
+          <div class="info-card-value text-sm" id="statTypeTime">0 分钟</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/icons.js"></script>
+  <script src="../js/common.js"></script>
+  <script>
+    initToolPage('char-count');
+
+    function countStats() {
+      const text = document.getElementById('textInput').value;
+      const chars = text.length;
+      const noSpace = text.replace(/\s/g, '').length;
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      const lines = text ? text.split('\n').length : 0;
+      const bytes = new TextEncoder().encode(text).length;
+      const chinese = (text.match(/[一-鿿㐀-䶿]/g) || []).length;
+      const letters = (text.match(/[a-zA-Z]/g) || []).length;
+      const digits = (text.match(/\d/g) || []).length;
+      const paragraphs = text.trim() ? text.trim().split(/\n\s*\n/).length : 0;
+      const sentences = text.trim() ? text.split(/[.!。！？?]+/).filter(s => s.trim()).length : 0;
+      const englishWords = text.replace(/[一-鿿㐀-䶿]/g, ' ').trim()
+        ? text.replace(/[一-鿿㐀-䶿]/g, ' ').trim().split(/\s+/).filter(Boolean).length : 0;
+      const readMinutes = Math.ceil((chinese / 400) + (englishWords / 200)) || 0;
+      const typeMinutes = Math.ceil(chars / 40) || 0;
+
+      document.getElementById('statChars').textContent = chars.toLocaleString();
+      document.getElementById('statNoSpace').textContent = noSpace.toLocaleString();
+      document.getElementById('statWords').textContent = words.toLocaleString();
+      document.getElementById('statLines').textContent = lines.toLocaleString();
+      document.getElementById('statBytes').textContent = bytes.toLocaleString();
+      document.getElementById('statChinese').textContent = chinese.toLocaleString();
+      document.getElementById('statLetters').textContent = letters.toLocaleString();
+      document.getElementById('statDigits').textContent = digits.toLocaleString();
+      document.getElementById('statParagraphs').textContent = paragraphs.toLocaleString();
+      document.getElementById('statSentences').textContent = sentences.toLocaleString();
+      document.getElementById('statReadTime').textContent = readMinutes > 0 ? `约 ${readMinutes} 分钟` : '0 分钟';
+      document.getElementById('statTypeTime').textContent = typeMinutes > 0 ? `约 ${typeMinutes} 分钟` : '0 分钟';
+    }
+
+    document.getElementById('textInput').addEventListener('input', debounce(countStats, 100));
+    countStats();
+  </script>
+</body>
+</html>

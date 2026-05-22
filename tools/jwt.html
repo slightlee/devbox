@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <style>
+    .jwt-token-display {
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      line-height: 1.8;
+      word-break: break-all;
+      padding: var(--space-md);
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+    }
+    .jwt-token-display .jwt-h { color: #2563eb; }
+    .jwt-token-display .jwt-p { color: #16a34a; }
+    .jwt-token-display .jwt-s { color: #d97706; }
+    .jwt-token-display .jwt-dot { color: var(--color-text-muted); }
+    [data-theme="dark"] .jwt-token-display .jwt-h { color: #60a5fa; }
+    [data-theme="dark"] .jwt-token-display .jwt-p { color: #4ade80; }
+    [data-theme="dark"] .jwt-token-display .jwt-s { color: #fbbf24; }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">跳转到主要内容</a>
+  <div class="tool-page">
+    <main class="tool-content animate-in" id="main-content" role="main">
+      <div class="tool-header">
+        <h1><span class="tool-icon icon-security svg-icon" aria-hidden="true" data-icon="key"></span> JWT 解析</h1>
+        <p>粘贴 JWT Token，自动解析 Header、Payload 和 Signature 三个部分。</p>
+      </div>
+
+      <div class="tool-panel mb-lg">
+        <div class="panel-header">
+          <span class="panel-title">输入 JWT Token</span>
+          <button class="btn btn-ghost btn-sm" onclick="loadSample()">加载示例</button>
+        </div>
+        <div class="panel-body">
+          <label class="io-label" for="jwtInput">JWT Token</label>
+          <textarea class="textarea-field" id="jwtInput" placeholder="粘贴你的 JWT Token..." style="min-height:100px;"></textarea>
+          <div class="mt-sm gap-sm">
+            <button class="btn btn-primary" onclick="parseJWT()">解析</button>
+            <button class="btn btn-ghost" onclick="clearAll()">清空</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="jwtVis" class="tool-panel mb-lg" hidden>
+        <div class="panel-header">
+          <span class="panel-title">Token 结构</span>
+        </div>
+        <div class="panel-body">
+          <div class="jwt-token-display" id="jwtDisplay"></div>
+        </div>
+      </div>
+
+      <div id="jwtResults" hidden>
+        <div class="tool-panel mb-lg">
+          <div class="panel-header">
+            <span class="panel-title">Header</span>
+            <button class="btn btn-ghost btn-sm" onclick="copyPart('header')">
+              <span class="svg-icon" data-icon="copy"></span> 复制
+            </button>
+          </div>
+          <div class="panel-body">
+            <span class="jwt-part-label jwt-header">HEADER</span>
+            <div class="result-box" id="jwtHeader" style="min-height:80px;"></div>
+          </div>
+        </div>
+
+        <div class="tool-panel mb-lg">
+          <div class="panel-header">
+            <span class="panel-title">Payload</span>
+            <button class="btn btn-ghost btn-sm" onclick="copyPart('payload')">
+              <span class="svg-icon" data-icon="copy"></span> 复制
+            </button>
+          </div>
+          <div class="panel-body">
+            <span class="jwt-part-label jwt-payload">PAYLOAD</span>
+            <div class="result-box" id="jwtPayload" style="min-height:120px;"></div>
+            <div id="jwtTimeInfo" class="mt-md"></div>
+          </div>
+        </div>
+
+        <div class="tool-panel">
+          <div class="panel-header">
+            <span class="panel-title">Signature</span>
+          </div>
+          <div class="panel-body">
+            <span class="jwt-part-label jwt-signature">SIGNATURE</span>
+            <div class="result-box" id="jwtSignature" style="min-height:60px;word-break:break-all;"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/icons.js"></script>
+  <script src="../js/common.js"></script>
+  <script>
+    initToolPage('jwt');
+
+    const parts = { header: '', payload: '', signature: '' };
+
+    function base64UrlDecode(str) {
+      str = str.replace(/-/g, '+').replace(/_/g, '/');
+      while (str.length % 4) str += '=';
+      const binary = atob(str);
+      const bytes = new Uint8Array([...binary].map(c => c.charCodeAt(0)));
+      return new TextDecoder().decode(bytes);
+    }
+
+    function parseJWT() {
+      const token = document.getElementById('jwtInput').value.trim();
+      if (!token) { showToast('请输入 JWT Token', 'info'); return; }
+      const segments = token.split('.');
+      if (segments.length !== 3) { showToast('无效的 JWT：需要 3 个部分', 'error'); return; }
+      try {
+        const header = JSON.parse(base64UrlDecode(segments[0]));
+        const payload = JSON.parse(base64UrlDecode(segments[1]));
+        parts.header = JSON.stringify(header, null, 2);
+        parts.payload = JSON.stringify(payload, null, 2);
+        parts.signature = segments[2];
+
+        document.getElementById('jwtDisplay').innerHTML =
+          `<span class="jwt-h">${escapeHtml(segments[0])}</span><span class="jwt-dot">.</span><span class="jwt-p">${escapeHtml(segments[1])}</span><span class="jwt-dot">.</span><span class="jwt-s">${escapeHtml(segments[2])}</span>`;
+        document.getElementById('jwtHeader').textContent = parts.header;
+        document.getElementById('jwtPayload').textContent = parts.payload;
+        document.getElementById('jwtSignature').textContent = segments[2];
+
+        let timeHtml = '';
+        if (payload.iat) timeHtml += `<div class="info-card mb-lg"><div class="info-card-label">签发时间 (iat)</div><div class="text-sm mono">${new Date(payload.iat * 1000).toLocaleString('zh-CN')}</div></div>`;
+        if (payload.exp) {
+          const expDate = new Date(payload.exp * 1000);
+          const expired = expDate < new Date();
+          timeHtml += `<div class="info-card mb-lg"><div class="info-card-label">过期时间 (exp)</div><div class="text-sm mono" style="color:${expired ? 'var(--color-error)' : 'var(--color-success)'};">${expDate.toLocaleString('zh-CN')} ${expired ? '(已过期)' : '(有效)'}</div></div>`;
+        }
+        if (payload.nbf) timeHtml += `<div class="info-card"><div class="info-card-label">生效时间 (nbf)</div><div class="text-sm mono">${new Date(payload.nbf * 1000).toLocaleString('zh-CN')}</div></div>`;
+        document.getElementById('jwtTimeInfo').innerHTML = timeHtml;
+
+        document.getElementById('jwtVis').hidden = false;
+        document.getElementById('jwtResults').hidden = false;
+        showToast('JWT 解析成功', 'success');
+      } catch (e) {
+        showToast('解析失败：无效的 JWT 格式', 'error');
+      }
+    }
+
+    function copyPart(part) { if (parts[part]) copyText(parts[part]); }
+
+    function clearAll() {
+      document.getElementById('jwtInput').value = '';
+      document.getElementById('jwtVis').hidden = true;
+      document.getElementById('jwtResults').hidden = true;
+    }
+
+    function loadSample() {
+      document.getElementById('jwtInput').value = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkRldlRvb2xzIiwiaWF0IjoxNzAwMDAwMDAwLCJleHAiOjE4MDAwMDAwMDAsInJvbGUiOiJhZG1pbiJ9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+      parseJWT();
+    }
+
+    document.getElementById('jwtInput').addEventListener('input', debounce(parseJWT, 400));
+  </script>
+</body>
+</html>

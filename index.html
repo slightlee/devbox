@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevBox - 开发者工具箱</title>
+  <meta name="description" content="开发者日常高频工具集合，即开即用。Base64、JSON、时间戳、JWT、哈希等常用工具一站搞定。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">跳转到主要内容</a>
+
+  <section class="hero" id="main-content" role="banner">
+    <div class="container">
+      <div class="hero-badge"><span class="svg-icon" id="heroBadgeIcon" style="display:inline-flex;"></span> 开发者必备工具箱</div>
+      <h1>DevBox</h1>
+      <p>开发者日常高频工具集合，即开即用，无需安装。快速完成编码转换、数据处理、安全校验等操作。</p>
+    </div>
+  </section>
+
+  <div class="container">
+    <div class="categories" id="categories" role="tablist" aria-label="工具分类"></div>
+  </div>
+
+  <div class="container">
+    <div class="tools-grid" id="toolsGrid" role="list"></div>
+    <div class="no-results" id="noResults" role="status">
+      <div class="no-results-icon svg-icon" id="noResultsIcon" style="justify-content:center;margin-bottom:var(--space-md);"></div>
+      <div class="no-results-text">没有找到匹配的工具</div>
+    </div>
+  </div>
+
+  <script src="js/icons.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    // Inject icons
+    document.getElementById('heroBadgeIcon').innerHTML = getIcon('sparkles');
+    document.getElementById('noResultsIcon').innerHTML = getIcon('search');
+
+    // Render navbar and footer
+    renderNavbar();
+    renderFooter();
+
+    let activeCategory = '全部';
+
+    function renderCategories() {
+      const el = document.getElementById('categories');
+      el.innerHTML = CATEGORIES.map(cat =>
+        `<button class="category-tag${cat === activeCategory ? ' active' : ''}" data-cat="${cat}" role="tab" aria-selected="${cat === activeCategory}">${cat}</button>`
+      ).join('');
+      el.querySelectorAll('.category-tag').forEach(btn => {
+        btn.addEventListener('click', () => {
+          activeCategory = btn.dataset.cat;
+          renderCategories();
+          renderTools();
+        });
+      });
+    }
+
+    function renderTools() {
+      const grid = document.getElementById('toolsGrid');
+      const noResults = document.getElementById('noResults');
+      const filtered = TOOLS.filter(t => activeCategory === '全部' || t.category === activeCategory);
+      if (filtered.length === 0) {
+        grid.style.display = 'none';
+        noResults.classList.add('visible');
+        return;
+      }
+      grid.style.display = '';
+      noResults.classList.remove('visible');
+      grid.innerHTML = filtered.map(t => `
+        <a href="${t.path}" class="tool-card" role="listitem">
+          <div class="tool-card-header">
+            <div class="tool-card-icon ${t.iconClass} svg-icon">${getIcon(t.iconKey)}</div>
+            <span class="tool-card-tag">${t.category}</span>
+          </div>
+          <div class="tool-card-body">
+            <div class="tool-card-title">${t.name}</div>
+            <div class="tool-card-desc">${t.desc}</div>
+          </div>
+        </a>
+      `).join('');
+      // Set animation delays via CSS custom property
+      grid.querySelectorAll('.tool-card').forEach((card, i) => {
+        card.style.setProperty('--i', i);
+      });
+    }
+
+    renderCategories();
+    renderTools();
+  </script>
+</body>
+</html>

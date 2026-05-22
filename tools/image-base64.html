@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">跳转到主要内容</a>
+  <div class="tool-page">
+    <main class="tool-content animate-in" id="main-content" role="main">
+      <div class="tool-header">
+        <h1><span class="tool-icon icon-encode svg-icon" aria-hidden="true" data-icon="image"></span> 图片 Base64</h1>
+        <p>将图片转换为 Base64 编码字符串，或从 Base64 还原为图片预览。</p>
+      </div>
+
+      <div class="tool-panel mb-lg">
+        <div class="panel-body">
+          <div class="btn-group" role="group" aria-label="转换模式">
+            <button class="btn btn-secondary active" id="modeImg2B64" aria-pressed="true">图片 → Base64</button>
+            <button class="btn btn-secondary" id="modeB642Img" aria-pressed="false">Base64 → 图片</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="panelToBase64" class="tool-panel mb-lg">
+        <div class="panel-header">
+          <span class="panel-title">上传图片</span>
+        </div>
+        <div class="panel-body">
+          <div class="upload-zone" id="uploadZone" role="button" tabindex="0" aria-label="点击或拖拽图片上传">
+            <div class="upload-zone-icon svg-icon" data-icon="upload" style="justify-content:center;"></div>
+            <div class="upload-zone-text">点击或拖拽图片到此处</div>
+            <div class="upload-zone-hint">支持 PNG、JPG、GIF、SVG、WebP</div>
+          </div>
+          <input type="file" id="fileInput" accept="image/*" hidden aria-hidden="true">
+          <img id="previewImg" class="image-preview" hidden alt="上传的图片预览">
+          <div class="mt-md">
+            <label class="io-label" for="b64Output">Base64 输出</label>
+            <textarea class="textarea-field min-h-sm" id="b64Output" placeholder="图片的 Base64 编码将显示在这里..." readonly></textarea>
+            <div class="mt-sm gap-sm">
+              <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('b64Output').value)">
+                <span class="svg-icon" data-icon="copy"></span> 复制
+              </button>
+              <span id="imgInfo" class="text-muted" style="line-height:30px;"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="panelToImage" class="tool-panel" hidden>
+        <div class="panel-header">
+          <span class="panel-title">输入 Base64</span>
+        </div>
+        <div class="panel-body">
+          <label class="io-label" for="b64Input">Base64 编码</label>
+          <textarea class="textarea-field min-h-sm" id="b64Input" placeholder="粘贴 Base64 编码字符串（可包含 data:image 前缀）..."></textarea>
+          <div class="mt-md">
+            <button class="btn btn-primary" onclick="decodeToImage()">生成图片</button>
+          </div>
+          <div id="decodedImgWrap" class="mt-md" hidden>
+            <div class="io-label">图片预览</div>
+            <img id="decodedImg" class="image-preview" alt="Base64 解码的图片">
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/icons.js"></script>
+  <script src="../js/common.js"></script>
+  <script>
+    initToolPage('image-base64');
+
+    setupModeToggle('modeImg2B64', 'modeB642Img', ['toBase64', 'toImage'], (m) => {
+      document.getElementById('panelToBase64').hidden = m !== 'toBase64';
+      document.getElementById('panelToImage').hidden = m !== 'toImage';
+    });
+
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+
+    uploadZone.addEventListener('click', () => fileInput.click());
+    uploadZone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
+    uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('dragover');
+      if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', () => { if (fileInput.files[0]) processFile(fileInput.files[0]); });
+
+    function processFile(file) {
+      if (!file.type.startsWith('image/')) {
+        showToast('请选择图片文件', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target.result;
+        document.getElementById('b64Output').value = result;
+        const img = document.getElementById('previewImg');
+        img.src = result;
+        img.hidden = false;
+        document.getElementById('imgInfo').textContent = `${file.name} | ${file.type} | ${(file.size / 1024).toFixed(1)} KB`;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function decodeToImage() {
+      const input = document.getElementById('b64Input').value.trim();
+      if (!input) { showToast('请输入 Base64 编码', 'info'); return; }
+      const src = input.startsWith('data:') ? input : 'data:image/png;base64,' + input;
+      const img = document.getElementById('decodedImg');
+      img.src = src;
+      img.parentElement.hidden = false;
+      img.onerror = () => showToast('解码失败：无效的 Base64 图片', 'error');
+    }
+  </script>
+</body>
+</html>
