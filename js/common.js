@@ -150,14 +150,9 @@ function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// Get base path (handles both root and tools/ directory)
+// Get base path - always use root-relative to avoid path duplication on Cloudflare Pages
 function getBasePath() {
-  const scripts = document.querySelectorAll('script[src*="js/"]');
-  if (scripts.length) {
-    const src = scripts[0].getAttribute('src');
-    if (src.startsWith('../')) return '../';
-  }
-  return './';
+  return '/';
 }
 
 // Render navbar

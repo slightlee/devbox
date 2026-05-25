@@ -79,7 +79,7 @@
       grid.style.display = '';
       noResults.classList.remove('visible');
       grid.innerHTML = filtered.map(t => `
-        <a href="${t.path}" class="tool-card" role="listitem">
+        <a href="/${t.path}" class="tool-card" role="listitem">
           <div class="tool-card-header">
             <div class="tool-card-icon ${t.iconClass} svg-icon">${getIcon(t.iconKey)}</div>
             <span class="tool-card-tag">${t.category}</span>
