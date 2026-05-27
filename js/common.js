@@ -135,6 +135,28 @@ const TOOLS = [
     iconClass: 'icon-text',
     category: '文本处理',
     path: 'tools/char-count.html'
+  },
+  {
+    id: 'image-crop',
+    name: '图片裁剪',
+    desc: '可视化裁剪图片，支持自由框选和常用比例',
+    title: '图片裁剪 - DevBox',
+    description: '在线图片裁剪工具，可视化拖拽框选，支持自由裁剪和常用比例。',
+    iconKey: 'scissors',
+    iconClass: 'icon-dev',
+    category: '开发辅助',
+    path: 'tools/image-crop.html'
+  },
+  {
+    id: 'image-compress',
+    name: '图片压缩',
+    desc: '压缩图片大小，支持调整质量、缩放尺寸、转换格式',
+    title: '图片压缩 - DevBox',
+    description: '在线图片压缩工具，支持质量压缩、尺寸缩放、格式转换，实时预览压缩效果。',
+    iconKey: 'image',
+    iconClass: 'icon-encode',
+    category: '开发辅助',
+    path: 'tools/image-compress.html'
   }
 ];
 

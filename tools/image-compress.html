@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <style>
+    /* --- Layout --- */
+    .compress-layout {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: var(--space-lg);
+      align-items: start;
+    }
+    @media (max-width: 860px) {
+      .compress-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* --- Preview area --- */
+    .preview-area {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: var(--space-md);
+      min-height: 120px;
+    }
+    .preview-area img {
+      max-width: 100%;
+      max-height: 400px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+      object-fit: contain;
+    }
+    .img-info-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-lg);
+      padding: var(--space-sm) var(--space-md);
+      font-size: 0.8125rem;
+      color: var(--color-text-secondary);
+      font-family: var(--font-mono);
+    }
+
+    /* --- Side panel --- */
+    .compress-side-panel {
+      position: sticky;
+      top: calc(var(--nav-height) + var(--space-xl));
+    }
+    .compress-side-panel .tool-panel {
+      border-radius: var(--radius-lg);
+    }
+    .compress-side-panel .panel-body {
+      padding: var(--space-md);
+    }
+
+    /* --- Form elements --- */
+    .form-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .form-row:last-child { margin-bottom: 0; }
+    .form-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--color-text-muted);
+      white-space: nowrap;
+      min-width: 36px;
+    }
+    .input-sm {
+      width: 64px;
+      padding: 5px 6px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      text-align: center;
+      outline: none;
+      transition: border-color var(--transition-fast);
+    }
+    .input-sm:focus {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px var(--color-primary-bg);
+    }
+    .range-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      flex: 1;
+    }
+    .range-row input[type="range"] {
+      flex: 1;
+      accent-color: var(--color-primary);
+      height: 4px;
+      cursor: pointer;
+    }
+    .range-row input[type="range"]:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .range-val {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-text);
+      min-width: 28px;
+      text-align: right;
+    }
+    .output-info {
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      margin-top: 12px;
+    }
+    .output-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      padding: 3px 0;
+    }
+    .output-row + .output-row { border-top: 1px solid var(--color-border-light); }
+    .output-label { color: var(--color-text-muted); }
+    .output-value { font-family: var(--font-mono); font-weight: 600; color: var(--color-text); }
+    .compress-rate {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .compress-rate.good { background: var(--color-success-bg); color: var(--color-success); }
+    .compress-rate.warn { background: var(--color-warning-bg); color: var(--color-warning); }
+    .lock-btn {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border);
+      background: var(--color-bg);
+      color: var(--color-text-muted);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      flex-shrink: 0;
+    }
+    .lock-btn:hover { background: var(--color-bg-elevated); color: var(--color-text); }
+    .lock-btn.locked { background: var(--color-primary-bg); border-color: var(--color-primary-light); color: var(--color-primary); }
+    .select-field-sm {
+      padding: 5px 28px 5px 8px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-size: 0.75rem;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      transition: border-color var(--transition-fast);
+    }
+    .select-field-sm:focus {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px var(--color-primary-bg);
+    }
+    .quality-hint {
+      font-size: 0.6875rem;
+      color: var(--color-text-muted);
+      margin-top: -6px;
+      margin-bottom: 10px;
+      padding-left: 42px;
+      display: none;
+    }
+    .quality-hint.visible { display: block; }
+
+    /* --- Compact buttons --- */
+    .btn-compact {
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      gap: 4px;
+      min-height: 28px;
+    }
+    .btn-compact .svg-icon svg { width: 14px; height: 14px; }
+
+    .hidden { display: none !important; }
+
+    /* --- Preview modal --- */
+    .preview-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 9998;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-xl);
+    }
+    .preview-modal-content {
+      background: var(--color-bg-card);
+      border-radius: var(--radius-lg);
+      max-width: 90vw;
+      max-height: 85vh;
+      overflow: auto;
+      box-shadow: var(--shadow-xl);
+    }
+    .preview-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-md) var(--space-lg);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .preview-modal-header h3 { font-size: 1rem; font-weight: 600; }
+    .preview-modal-body {
+      padding: var(--space-lg);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .preview-modal-body img {
+      max-width: 100%;
+      max-height: 65vh;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border);
+    }
+    .preview-modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-lg);
+      padding: var(--space-md) var(--space-lg);
+      border-top: 1px solid var(--color-border);
+      font-size: 0.8125rem;
+      color: var(--color-text-secondary);
+      font-family: var(--font-mono);
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">跳转到主要内容</a>
+  <div class="tool-page">
+    <main class="tool-content animate-in" id="main-content" role="main">
+      <div class="tool-header">
+        <h1><span class="tool-icon icon-dev svg-icon" aria-hidden="true" data-icon="image"></span> 图片压缩</h1>
+        <p>压缩图片文件大小，支持调整质量、缩放尺寸、转换格式，实时预览压缩效果。</p>
+      </div>
+
+      <!-- Upload -->
+      <div class="tool-panel mb-lg" id="uploadPanel">
+        <div class="panel-header">
+          <span class="panel-title">上传图片</span>
+        </div>
+        <div class="panel-body">
+          <div class="image-droparea" id="uploadZone" role="button" tabindex="0" aria-label="点击或拖拽图片上传">
+            <div class="image-droparea-empty" id="dropEmpty">
+              <div class="image-droparea-icon svg-icon" data-icon="upload" style="justify-content:center;"></div>
+              <div class="image-droparea-text">点击或拖拽图片到此处</div>
+              <div class="image-droparea-hint">支持 PNG、JPG、GIF、WebP、BMP</div>
+            </div>
+          </div>
+          <input type="file" id="fileInput" accept="image/*" hidden aria-hidden="true">
+        </div>
+      </div>
+
+      <!-- Compress workspace: side-by-side layout -->
+      <div class="compress-layout hidden" id="compressWorkspace">
+
+        <!-- Left: Preview -->
+        <div>
+          <div class="tool-panel w-full">
+            <div class="panel-header">
+              <span class="panel-title">图片预览</span>
+              <div class="panel-actions">
+                <button class="btn btn-secondary btn-compact" id="reuploadBtn">
+                  <span class="svg-icon" data-icon="upload"></span> 重新上传
+                </button>
+              </div>
+            </div>
+            <div class="preview-area">
+              <img id="previewImg" alt="上传的图片预览">
+            </div>
+            <div class="img-info-bar">
+              <span id="origSize">--</span>
+              <span id="origDims">--</span>
+              <span id="origType">--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Controls -->
+        <div class="compress-side-panel">
+          <div class="tool-panel">
+            <div class="panel-header">
+              <span class="panel-title">压缩设置</span>
+            </div>
+            <div class="panel-body">
+              <div class="form-row">
+                <span class="form-label">格式</span>
+                <select class="select-field-sm" id="compressFormat">
+                  <option value="original">保持原格式</option>
+                  <option value="image/jpeg">JPEG</option>
+                  <option value="image/webp">WebP</option>
+                  <option value="image/png">PNG</option>
+                </select>
+              </div>
+
+              <div class="form-row">
+                <span class="form-label">质量</span>
+                <div class="range-row">
+                  <input type="range" id="qualityRange" min="1" max="100" value="80">
+                  <span class="range-val" id="qualityVal">80</span>
+                </div>
+              </div>
+              <div class="quality-hint" id="qualityHint">PNG 为无损格式，质量设置仅对 JPEG/WebP 有效</div>
+
+              <div class="form-row">
+                <span class="form-label">尺寸</span>
+                <input type="number" class="input-sm" id="scaleW" placeholder="宽" min="1">
+                <span style="color:var(--color-text-muted);font-size:0.625rem;">&times;</span>
+                <input type="number" class="input-sm" id="scaleH" placeholder="高" min="1">
+                <button class="lock-btn locked" id="lockRatioBtn" title="锁定比例">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </button>
+                <span style="font-size:0.625rem;color:var(--color-text-muted);">px</span>
+              </div>
+              <div class="form-row">
+                <span class="form-label">缩放</span>
+                <input type="number" class="input-sm" id="scalePercent" value="100" min="1" max="1000" style="width:52px;">
+                <span style="font-size:0.75rem;color:var(--color-text-muted);">%</span>
+              </div>
+
+              <div class="output-info">
+                <div class="output-row">
+                  <span class="output-label">输出尺寸</span>
+                  <span class="output-value" id="compressDims">-</span>
+                </div>
+                <div class="output-row">
+                  <span class="output-label">原始大小</span>
+                  <span class="output-value" id="compressOrigSize">-</span>
+                </div>
+                <div class="output-row">
+                  <span class="output-label">压缩后大小</span>
+                  <span class="output-value" id="compressNewSize">-</span>
+                </div>
+                <div class="output-row">
+                  <span class="output-label">压缩率</span>
+                  <span class="output-value" id="compressRate">-</span>
+                </div>
+              </div>
+
+              <div class="mt-md" style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button class="btn btn-primary btn-compact" id="compressPreviewBtn">
+                  <span class="svg-icon" data-icon="scan"></span> 预览
+                </button>
+                <button class="btn btn-secondary btn-compact" id="compressDownloadBtn">
+                  <span class="svg-icon" data-icon="download"></span> 下载
+                </button>
+                <button class="btn btn-ghost btn-compact" id="compressResetBtn">
+                  <span class="svg-icon" data-icon="swap"></span> 重置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/icons.js"></script>
+  <script src="../js/common.js"></script>
+  <script>
+    initToolPage('image-compress');
+
+    // --- State ---
+    let origImg = null;
+    let origFile = null;
+    let origBlobUrl = null;
+    let lockRatio = true;
+    let savedQuality = 80; // remember quality before switching to PNG
+
+    // --- DOM ---
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+    const uploadPanel = document.getElementById('uploadPanel');
+    const compressWorkspace = document.getElementById('compressWorkspace');
+    const previewImg = document.getElementById('previewImg');
+    const qualityRange = document.getElementById('qualityRange');
+    const qualityVal = document.getElementById('qualityVal');
+    const qualityHint = document.getElementById('qualityHint');
+    const compressFormat = document.getElementById('compressFormat');
+
+    // --- Upload ---
+    uploadZone.addEventListener('click', () => fileInput.click());
+    uploadZone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
+    uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('dragover');
+      if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadFile(fileInput.files[0]); });
+    document.getElementById('reuploadBtn').addEventListener('click', () => fileInput.click());
+
+    function loadFile(file) {
+      if (!file.type.startsWith('image/')) {
+        showToast('请选择图片文件', 'error');
+        return;
+      }
+      origFile = file;
+      if (origBlobUrl) URL.revokeObjectURL(origBlobUrl);
+      origBlobUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        origImg = img;
+        // Detect animated images
+        detectAnimated(file).then(animated => {
+          if (animated) showToast('检测到动图，压缩后将变为静态图片', 'info');
+        });
+        previewImg.src = origBlobUrl;
+        showPanels();
+        updateImgInfo();
+        initCompressDims();
+        updateQualityState();
+        updateCompressInfo();
+      };
+      img.src = origBlobUrl;
+    }
+
+    function showPanels() {
+      uploadPanel.classList.add('hidden');
+      compressWorkspace.classList.remove('hidden');
+    }
+
+    function updateImgInfo() {
+      document.getElementById('origSize').textContent = formatSize(origFile.size);
+      document.getElementById('origDims').textContent = origImg.naturalWidth + ' × ' + origImg.naturalHeight + ' px';
+      document.getElementById('origType').textContent = origFile.type.split('/')[1].toUpperCase();
+    }
+
+    // --- PNG quality fix ---
+    function isPngFormat() {
+      const sel = compressFormat.value;
+      if (sel === 'image/png') return true;
+      if (sel === 'original' && origFile && origFile.type === 'image/png') return true;
+      return false;
+    }
+
+    function updateQualityState() {
+      const png = isPngFormat();
+      if (png) {
+        // Save current quality, then set to 100
+        savedQuality = parseInt(qualityRange.value);
+        qualityRange.value = 100;
+        qualityVal.textContent = '100';
+      } else {
+        // Restore previous quality
+        qualityRange.value = savedQuality;
+        qualityVal.textContent = String(savedQuality);
+      }
+      qualityRange.disabled = png;
+      qualityVal.style.opacity = png ? '0.4' : '1';
+      qualityHint.classList.toggle('visible', png);
+    }
+
+    // --- Compress ---
+    function initCompressDims() {
+      document.getElementById('scaleW').value = origImg.naturalWidth;
+      document.getElementById('scaleH').value = origImg.naturalHeight;
+      document.getElementById('scalePercent').value = 100;
+      qualityRange.value = 80;
+      qualityVal.textContent = '80';
+      compressFormat.value = 'original';
+      lockRatio = true;
+      document.getElementById('lockRatioBtn').classList.add('locked');
+    }
+
+    document.getElementById('lockRatioBtn').addEventListener('click', () => {
+      lockRatio = !lockRatio;
+      document.getElementById('lockRatioBtn').classList.toggle('locked', lockRatio);
+    });
+
+    document.getElementById('scaleW').addEventListener('input', () => {
+      if (lockRatio && origImg) {
+        const w = parseInt(document.getElementById('scaleW').value) || 1;
+        const h = Math.round(w / (origImg.naturalWidth / origImg.naturalHeight));
+        document.getElementById('scaleH').value = h;
+        document.getElementById('scalePercent').value = Math.round(w / origImg.naturalWidth * 100);
+      }
+      updateCompressInfo();
+    });
+
+    document.getElementById('scaleH').addEventListener('input', () => {
+      if (lockRatio && origImg) {
+        const h = parseInt(document.getElementById('scaleH').value) || 1;
+        const w = Math.round(h * (origImg.naturalWidth / origImg.naturalHeight));
+        document.getElementById('scaleW').value = w;
+        document.getElementById('scalePercent').value = Math.round(h / origImg.naturalHeight * 100);
+      }
+      updateCompressInfo();
+    });
+
+    document.getElementById('scalePercent').addEventListener('input', () => {
+      if (origImg) {
+        const pct = parseInt(document.getElementById('scalePercent').value) || 100;
+        document.getElementById('scaleW').value = Math.round(origImg.naturalWidth * pct / 100);
+        document.getElementById('scaleH').value = Math.round(origImg.naturalHeight * pct / 100);
+      }
+      updateCompressInfo();
+    });
+
+    qualityRange.addEventListener('input', () => {
+      qualityVal.textContent = qualityRange.value;
+      updateCompressInfo();
+    });
+
+    compressFormat.addEventListener('change', () => {
+      updateQualityState();
+      updateCompressInfo();
+    });
+
+    function getCompressMime() {
+      const sel = compressFormat.value;
+      if (sel === 'original') return origFile.type || 'image/png';
+      return sel;
+    }
+
+    function updateCompressInfo() {
+      if (!origImg) return;
+      const w = parseInt(document.getElementById('scaleW').value) || origImg.naturalWidth;
+      const h = parseInt(document.getElementById('scaleH').value) || origImg.naturalHeight;
+      document.getElementById('compressDims').textContent = w + ' × ' + h + ' px';
+      document.getElementById('compressOrigSize').textContent = formatSize(origFile.size);
+
+      estimateCompressSize(w, h).then(size => {
+        document.getElementById('compressNewSize').textContent = formatSize(size);
+        const rate = origFile.size > 0 ? ((1 - size / origFile.size) * 100) : 0;
+        const rateEl = document.getElementById('compressRate');
+        if (rate > 0) {
+          rateEl.innerHTML = '<span class="compress-rate good">&darr; ' + rate.toFixed(1) + '%</span>';
+        } else {
+          rateEl.innerHTML = '<span class="compress-rate warn">&uarr; ' + Math.abs(rate).toFixed(1) + '%</span>';
+        }
+      });
+    }
+
+    function estimateCompressSize(w, h) {
+      return new Promise(resolve => {
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        const cx = c.getContext('2d');
+        cx.drawImage(origImg, 0, 0, w, h);
+        const mime = getCompressMime();
+        // PNG is lossless — quality param is ignored
+        const quality = mime === 'image/png' ? undefined : parseInt(qualityRange.value) / 100;
+        c.toBlob(blob => resolve(blob ? blob.size : 0), mime, quality);
+      });
+    }
+
+    // --- Reset ---
+    document.getElementById('compressResetBtn').addEventListener('click', () => {
+      if (!origImg) return;
+      initCompressDims();
+      updateQualityState();
+      updateCompressInfo();
+      showToast('已重置压缩设置');
+    });
+
+    // --- Preview ---
+    document.getElementById('compressPreviewBtn').addEventListener('click', () => {
+      if (!origImg) return;
+      buildCompressBlob().then(({ blob, w, h }) => {
+        if (!blob) return;
+        showPreviewModal('压缩预览', URL.createObjectURL(blob), blob.size, w + ' × ' + h + ' px');
+      });
+    });
+
+    // --- Download ---
+    document.getElementById('compressDownloadBtn').addEventListener('click', () => {
+      if (!origImg) return;
+      buildCompressBlob().then(({ blob }) => {
+        if (!blob) return;
+        const mime = getCompressMime();
+        const ext = mime.split('/')[1].replace('jpeg', 'jpg');
+        const baseName = origFile.name.replace(/\.[^.]+$/, '');
+        downloadBlob(blob, baseName + '-compressed.' + ext);
+      });
+    });
+
+    function buildCompressBlob() {
+      return new Promise(resolve => {
+        const w = parseInt(document.getElementById('scaleW').value) || origImg.naturalWidth;
+        const h = parseInt(document.getElementById('scaleH').value) || origImg.naturalHeight;
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        const cx = c.getContext('2d');
+        cx.drawImage(origImg, 0, 0, w, h);
+        const mime = getCompressMime();
+        const quality = mime === 'image/png' ? undefined : parseInt(qualityRange.value) / 100;
+        c.toBlob(blob => resolve({ blob, w, h }), mime, quality);
+      });
+    }
+
+    // --- Preview Modal ---
+    function showPreviewModal(title, url, size, dims) {
+      const existing = document.querySelector('.preview-modal');
+      if (existing) existing.remove();
+      const modal = document.createElement('div');
+      modal.className = 'preview-modal';
+      modal.innerHTML = '<div class="preview-modal-content">' +
+        '<div class="preview-modal-header"><h3>' + title + '</h3>' +
+        '<button class="btn btn-ghost btn-compact" id="closePreview">' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+        '</button></div>' +
+        '<div class="preview-modal-body"><img src="' + url + '" alt="' + title + '"></div>' +
+        '<div class="preview-modal-footer"><span>尺寸: ' + dims + '</span><span>大小: ' + formatSize(size) + '</span></div>' +
+        '</div>';
+      document.body.appendChild(modal);
+      document.getElementById('closePreview').addEventListener('click', () => { modal.remove(); URL.revokeObjectURL(url); });
+      modal.addEventListener('click', (e) => { if (e.target === modal) { modal.remove(); URL.revokeObjectURL(url); } });
+    }
+
+    // --- Helpers ---
+    function detectAnimated(file) {
+      return file.arrayBuffer().then(buf => {
+        const bytes = new Uint8Array(buf);
+        // GIF: GIF89a header indicates animated (GIF87a is static)
+        if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) {
+          return bytes[3] === 0x39 && bytes[4] === 0x61;
+        }
+        // WebP: check RIFF header, then search for ANIM chunk in first 1KB
+        if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+            bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
+          const searchLen = Math.min(bytes.length, 1024);
+          for (let i = 12; i < searchLen - 3; i++) {
+            if (bytes[i] === 0x41 && bytes[i+1] === 0x4E && bytes[i+2] === 0x49 && bytes[i+3] === 0x4D) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }).catch(() => false);
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+
+    function downloadBlob(blob, filename) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+  </script>
+</body>
+</html>
