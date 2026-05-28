@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <style>
+    .bgremove-layout {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: var(--space-lg);
+      align-items: start;
+    }
+    @media (max-width: 860px) { .bgremove-layout { grid-template-columns: 1fr; } }
+
+    .preview-area {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: var(--space-md);
+      min-height: 120px;
+      position: relative;
+    }
+    .preview-area img, .preview-area canvas {
+      max-width: 100%;
+      max-height: 400px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+      object-fit: contain;
+    }
+    .img-info-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-lg);
+      padding: var(--space-sm) var(--space-md);
+      font-size: 0.8125rem;
+      color: var(--color-text-secondary);
+      font-family: var(--font-mono);
+    }
+
+    .bgremove-side-panel { position: sticky; top: calc(var(--nav-height) + var(--space-xl)); }
+    .bgremove-side-panel .tool-panel { border-radius: var(--radius-lg); }
+    .bgremove-side-panel .panel-body { padding: var(--space-md); }
+
+    .output-info {
+      background: var(--color-bg); border: 1px solid var(--color-border);
+      border-radius: var(--radius-md); padding: 10px 12px; margin-top: 12px;
+    }
+    .output-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.75rem; padding: 3px 0;
+    }
+    .output-row + .output-row { border-top: 1px solid var(--color-border-light); }
+    .output-label { color: var(--color-text-muted); }
+    .output-value { font-family: var(--font-mono); font-weight: 600; color: var(--color-text); }
+
+    .model-status {
+      display: flex; align-items: center; gap: var(--space-sm);
+      padding: 8px 12px; border-radius: var(--radius-md);
+      font-size: 0.75rem; margin-bottom: 12px;
+    }
+    .model-status.loading { background: var(--color-primary-bg); color: var(--color-primary); }
+    .model-status.ready { background: var(--color-success-bg); color: var(--color-success); }
+    .model-status.error { background: var(--color-error-bg); color: var(--color-error); }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .status-dot.loading { background: var(--color-primary); animation: pulse 1.2s ease infinite; }
+    .status-dot.ready { background: var(--color-success); }
+    .status-dot.error { background: var(--color-error); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    .processing-overlay {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.5);
+      border-radius: var(--radius-md); display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: var(--space-md); z-index: 10;
+    }
+    .processing-spinner {
+      width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.2);
+      border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .processing-text { color: #fff; font-size: 0.875rem; font-weight: 500; }
+    .processing-hint { color: rgba(255,255,255,0.7); font-size: 0.75rem; }
+
+    .checkerboard-bg {
+      background-image:
+        linear-gradient(45deg, #ccc 25%, transparent 25%),
+        linear-gradient(-45deg, #ccc 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #ccc 75%),
+        linear-gradient(-45deg, transparent 75%, #ccc 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    }
+
+    .btn-compact { padding: 4px 10px; font-size: 0.75rem; gap: 4px; min-height: 28px; }
+    .btn-compact .svg-icon svg { width: 14px; height: 14px; }
+    .hidden { display: none !important; }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "@huggingface/transformers": "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1"
+    }
+  }
+  </script>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">跳转到主要内容</a>
+  <div class="tool-page">
+    <main class="tool-content animate-in" id="main-content" role="main">
+      <div class="tool-header">
+        <h1><span class="tool-icon icon-dev svg-icon" aria-hidden="true" data-icon="layers"></span> 图片去背景</h1>
+        <p>基于 AI 模型智能识别前景主体，去除背景生成透明 PNG，完全在浏览器本地处理。</p>
+      </div>
+
+      <div class="tool-panel mb-lg" id="uploadPanel">
+        <div class="panel-header"><span class="panel-title">上传图片</span></div>
+        <div class="panel-body">
+          <div class="image-droparea" id="uploadZone" role="button" tabindex="0" aria-label="点击或拖拽图片上传">
+            <div class="image-droparea-empty">
+              <div class="image-droparea-icon svg-icon" data-icon="upload" style="justify-content:center;"></div>
+              <div class="image-droparea-text">点击或拖拽图片到此处</div>
+              <div class="image-droparea-hint">支持 PNG、JPG、WebP、BMP</div>
+            </div>
+          </div>
+          <input type="file" id="fileInput" accept="image/*" hidden aria-hidden="true">
+        </div>
+      </div>
+
+      <div class="bgremove-layout hidden" id="workspace">
+        <div>
+          <div class="tool-panel w-full">
+            <div class="panel-header">
+              <span class="panel-title">图片预览</span>
+              <div class="panel-actions">
+                <button class="btn btn-secondary btn-compact" id="reuploadBtn">
+                  <span class="svg-icon" data-icon="upload"></span> 重新上传
+                </button>
+              </div>
+            </div>
+            <div class="preview-area checkerboard-bg" id="previewWrap">
+              <canvas id="previewCanvas" style="max-width:100%;max-height:400px;border-radius:var(--radius-md);border:1px solid var(--color-border);"></canvas>
+              <div class="processing-overlay hidden" id="processingOverlay">
+                <div class="processing-spinner"></div>
+                <div class="processing-text" id="processingText">正在处理...</div>
+                <div class="processing-hint" id="processingHint"></div>
+              </div>
+            </div>
+            <div class="img-info-bar">
+              <span id="origSize">--</span>
+              <span id="origDims">--</span>
+              <span id="origType">--</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bgremove-side-panel">
+          <div class="tool-panel">
+            <div class="panel-header"><span class="panel-title">去背景设置</span></div>
+            <div class="panel-body">
+              <div class="model-status loading" id="modelStatus">
+                <span class="status-dot loading" id="statusDot"></span>
+                <span id="statusText">模型加载中...</span>
+              </div>
+
+              <div style="margin-bottom:12px;">
+                <label for="modelSelect" style="font-size:0.75rem;color:var(--color-text-secondary);display:block;margin-bottom:4px;">分割模型</label>
+                <select id="modelSelect" style="width:100%;padding:6px 8px;border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-bg);color:var(--color-text);font-size:0.8125rem;">
+                  <option value="Xenova/modnet">MODNet - 人像抠图</option>
+                  <option value="briaai/RMBG-1.4">RMBG 1.4 - 通用物体</option>
+                </select>
+                <div style="font-size:0.6875rem;color:var(--color-text-muted);margin-top:4px;" id="modelHint">人像照片选 MODNet，其他物体选 RMBG</div>
+              </div>
+
+              <div class="output-info">
+                <div class="output-row">
+                  <span class="output-label">原始大小</span>
+                  <span class="output-value" id="origSizeInfo">-</span>
+                </div>
+                <div class="output-row">
+                  <span class="output-label">输出大小</span>
+                  <span class="output-value" id="outputSizeInfo">-</span>
+                </div>
+                <div class="output-row">
+                  <span class="output-label">输出尺寸</span>
+                  <span class="output-value" id="outputDimsInfo">-</span>
+                </div>
+              </div>
+
+              <div class="mt-md" style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button class="btn btn-primary btn-compact" id="processBtn" disabled>
+                  <span class="svg-icon" data-icon="sparkles"></span> 去除背景
+                </button>
+                <button class="btn btn-secondary btn-compact" id="downloadBtn" disabled>
+                  <span class="svg-icon" data-icon="download"></span> 下载
+                </button>
+                <button class="btn btn-ghost btn-compact" id="resetBtn">
+                  <span class="svg-icon" data-icon="swap"></span> 重置
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/icons.js"></script>
+  <script src="../js/common.js"></script>
+  <script type="module">
+    import { pipeline } from '@huggingface/transformers';
+
+    initToolPage('image-bg-remove');
+
+    // --- State ---
+    let segPipeline = null;
+    let loadedModelId = null;
+    let origFile = null;
+    let origImg = null;
+    let hasResult = false;
+
+    // --- DOM ---
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+    const uploadPanel = document.getElementById('uploadPanel');
+    const workspace = document.getElementById('workspace');
+    const canvas = document.getElementById('previewCanvas');
+    const ctx = canvas.getContext('2d');
+    const processingOverlay = document.getElementById('processingOverlay');
+    const processingText = document.getElementById('processingText');
+    const processingHint = document.getElementById('processingHint');
+    const processBtn = document.getElementById('processBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const modelStatus = document.getElementById('modelStatus');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const modelSelect = document.getElementById('modelSelect');
+
+    // --- Load model ---
+    async function loadModel(force = false) {
+      const model_id = modelSelect.value;
+      if (!force && model_id === loadedModelId && segPipeline) return;
+      try {
+        const useWebGPU = typeof navigator !== 'undefined' && navigator.gpu;
+        setModelStatus('loading', '加载模型...');
+        processBtn.disabled = true;
+        modelSelect.disabled = true;
+        segPipeline = await pipeline('image-segmentation', model_id, {
+          device: useWebGPU ? 'webgpu' : 'wasm',
+          progress_callback: (e) => {
+            if (e.status === 'progress' && e.file) {
+              const pct = Math.round(e.progress);
+              setModelStatus('loading', `加载模型中... ${pct}%`);
+            }
+          },
+        });
+        loadedModelId = model_id;
+        setModelStatus('ready', '模型已就绪');
+        processBtn.disabled = false;
+      } catch (err) {
+        console.error('Model load failed:', err);
+        setModelStatus('error', '加载失败: ' + err.message);
+      } finally {
+        modelSelect.disabled = false;
+      }
+    }
+
+    function setModelStatus(state, text) {
+      modelStatus.className = 'model-status ' + state;
+      statusDot.className = 'status-dot ' + state;
+      statusText.textContent = text;
+    }
+
+    modelSelect.addEventListener('change', () => loadModel());
+    loadModel();
+
+    // --- Upload ---
+    uploadZone.addEventListener('click', () => fileInput.click());
+    uploadZone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
+    uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault(); uploadZone.classList.remove('dragover');
+      if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadFile(fileInput.files[0]); });
+    document.getElementById('reuploadBtn').addEventListener('click', () => fileInput.click());
+
+    function loadFile(file) {
+      if (!file.type.startsWith('image/')) { showToast('请选择图片文件', 'error'); return; }
+      origFile = file;
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        origImg = img;
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        ctx.drawImage(img, 0, 0);
+        hasResult = false;
+        downloadBtn.disabled = true;
+        uploadPanel.classList.add('hidden');
+        workspace.classList.remove('hidden');
+        updateImgInfo();
+        resetOutputInfo();
+        URL.revokeObjectURL(url);
+      };
+      img.src = url;
+    }
+
+    function updateImgInfo() {
+      document.getElementById('origSize').textContent = formatSize(origFile.size);
+      document.getElementById('origDims').textContent = origImg.naturalWidth + ' × ' + origImg.naturalHeight + ' px';
+      document.getElementById('origType').textContent = origFile.type.split('/')[1].toUpperCase();
+      document.getElementById('origSizeInfo').textContent = formatSize(origFile.size);
+    }
+
+    function resetOutputInfo() {
+      document.getElementById('outputSizeInfo').textContent = '-';
+      document.getElementById('outputDimsInfo').textContent = '-';
+    }
+
+    // --- Process ---
+    processBtn.addEventListener('click', async () => {
+      if (!origImg || !segPipeline) return;
+      processingOverlay.classList.remove('hidden');
+      processingText.textContent = 'AI 正在分析图片...';
+      processingHint.textContent = '首次处理可能需要加载模型文件';
+      processBtn.disabled = true;
+
+      try {
+        const dataUrl = canvas.toDataURL();
+        const result = await segPipeline(dataUrl);
+        const maskRaw = result[0].mask;
+
+        // Resize mask to original image dimensions and get pixel data
+        const w = origImg.naturalWidth;
+        const h = origImg.naturalHeight;
+        const mask = await maskRaw.resize(w, h);
+
+        // Draw original image and apply mask as alpha channel
+        canvas.width = w;
+        canvas.height = h;
+        ctx.drawImage(origImg, 0, 0);
+        const pixelData = ctx.getImageData(0, 0, w, h);
+        const maskData = mask.data;
+        for (let i = 0; i < maskData.length; i++) {
+          pixelData.data[4 * i + 3] = maskData[i];
+        }
+        ctx.putImageData(pixelData, 0, 0);
+
+        hasResult = true;
+        downloadBtn.disabled = false;
+        updateOutputInfo();
+        showToast('背景去除完成');
+      } catch (err) {
+        console.error('Processing failed:', err);
+        showToast('处理失败: ' + err.message, 'error');
+      } finally {
+        processingOverlay.classList.add('hidden');
+        processBtn.disabled = false;
+      }
+    });
+
+    function updateOutputInfo() {
+      canvas.toBlob((blob) => {
+        if (blob) document.getElementById('outputSizeInfo').textContent = formatSize(blob.size);
+      }, 'image/png');
+      document.getElementById('outputDimsInfo').textContent = canvas.width + ' × ' + canvas.height + ' px';
+    }
+
+    // --- Download ---
+    downloadBtn.addEventListener('click', () => {
+      if (!hasResult) return;
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = origFile.name.replace(/\.[^.]+$/, '') + '-nobg.png';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      }, 'image/png');
+    });
+
+    // --- Reset ---
+    resetBtn.addEventListener('click', () => {
+      if (!origImg) return;
+      canvas.width = origImg.naturalWidth;
+      canvas.height = origImg.naturalHeight;
+      ctx.drawImage(origImg, 0, 0);
+      hasResult = false;
+      downloadBtn.disabled = true;
+      resetOutputInfo();
+      showToast('已重置');
+    });
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+  </script>
+</body>
+</html>

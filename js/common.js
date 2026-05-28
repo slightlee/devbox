@@ -157,6 +157,17 @@ const TOOLS = [
     iconClass: 'icon-encode',
     category: '开发辅助',
     path: 'tools/image-compress.html'
+  },
+  {
+    id: 'image-bg-remove',
+    name: '图片去背景',
+    desc: '智能识别并去除图片背景，生成透明背景 PNG',
+    title: '图片去背景 - DevBox',
+    description: '在线图片去背景工具，智能识别并去除图片背景，生成透明背景 PNG 图片。',
+    iconKey: 'layers',
+    iconClass: 'icon-dev',
+    category: '开发辅助',
+    path: 'tools/image-bg-remove.html'
   }
 ];
 
