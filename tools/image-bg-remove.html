@@ -252,15 +252,22 @@
         setModelStatus('loading', '加载模型...');
         processBtn.disabled = true;
         modelSelect.disabled = true;
+        let showInitTimer = null;
         segPipeline = await pipeline('image-segmentation', model_id, {
           device: useWebGPU ? 'webgpu' : 'wasm',
           progress_callback: (e) => {
             if (e.status === 'progress' && e.file) {
               const pct = Math.round(e.progress);
               setModelStatus('loading', `加载模型中... ${pct}%`);
+              if (pct >= 100 && !showInitTimer) {
+                showInitTimer = setTimeout(() => {
+                  setModelStatus('loading', '模型初始化中，请稍候...');
+                }, 500);
+              }
             }
           },
         });
+        clearTimeout(showInitTimer);
         loadedModelId = model_id;
         setModelStatus('ready', '模型已就绪');
         processBtn.disabled = false;
